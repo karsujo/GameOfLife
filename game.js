@@ -17,7 +17,7 @@ class entity {
 
 initializeBoard();
 
-let game = setInterval(nextGen(context), 100);
+function startGame() { setInterval(nextGen(context), 100) };
 
 ////////////////////////////////////////////////////////////////////////
 
