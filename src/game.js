@@ -7,11 +7,13 @@ const GRID_UNIT = 8;
 const GAME_WIDTH = canvas.width;
 const GAME_HEIGHT = canvas.height;
 var GAME_START = true;
+var GAME_PERIOD = 10;
+var GENERATION = 0;
 var CANVAS_SCOPE = false;
 var IS_MOUSE_DOWN = false;
 var TRACK_ENTITY = false;
-var KILL_RENDER = new Array();
-var SPAWN_RENDER = new Array();
+//var KILL_RENDER = new Array();
+//var SPAWN_RENDER = new Array();
 //-----------//
 
 //--MOUSE EVENT LISTENERS---//
@@ -40,7 +42,7 @@ initializeBoard();
 
 function startGame() {
     GAME_START = true;
-    setInterval(nextGen, 10);
+    setInterval(nextGen, GAME_PERIOD);
 };
 
 function stopGame() {
@@ -50,13 +52,25 @@ function stopGame() {
 function clearGame() {
     initializeBoard();
     stopGame();
+    clearGameGeneration();
+}
+
+function setGameGeneration() {
+    GENERATION++;
+    document.getElementById("gen").innerText = GENERATION;
+}
+
+function clearGameGeneration() {
+    GENERATION = 0;
+    document.getElementById("gen").innerText = GENERATION;
 }
 
 function nextGen() {
 
     if (GAME_START) {
 
-        var boardScanResult = null;
+        var entities_to_kill = new Array();
+        var entities_to_spawn = new Array();
 
         for (i = 0; i < GAME_WIDTH; i = i + GRID_UNIT) {
             for (j = 0; j < GAME_HEIGHT; j = j + GRID_UNIT) {
@@ -67,14 +81,16 @@ function nextGen() {
                     var stub = false;
                 }
 
-                computeRules(computeNeighborValues(i, j));
+                computeRules(computeNeighborValues(i, j), entities_to_kill, entities_to_spawn);
             }
         }
 
-        RenderEntities();
+        RenderEntities(entities_to_kill, entities_to_spawn);
+        setGameGeneration();
 
-        KILL_RENDER = new Array();
-        SPAWN_RENDER = new Array();
+
+        //   KILL_RENDER = new Array();
+        //  SPAWN_RENDER = new Array();
     }
 }
 //-----------//
@@ -102,8 +118,8 @@ function spawnMousePathEntities(canvas, event) {
     const y = (event.clientY - rect.top)
     let xp = closestMultiple(x, 8);
     let yp = closestMultiple(y, 8);
-    //  console.log(xp);
-    //  console.log(yp);
+    console.log(xp);
+    console.log(yp);
     spawnEntity(xp, yp);
 }
 
@@ -147,12 +163,12 @@ function trackEntity(x, y) {
 
 
 function RenderEntities(entitiesToKill, entitiesToSpawn) {
-    KILL_RENDER.forEach((entity) => {
+    entitiesToKill.forEach((entity) => {
         killEntity(entity.x, entity.y);
 
     });
 
-    SPAWN_RENDER.forEach((entity) => {
+    entitiesToSpawn.forEach((entity) => {
         spawnEntity(entity.x, entity.y);
     })
 }
@@ -328,7 +344,7 @@ function IsEntityWhite(context, x, y) {
 
 //---GAME RULES---//
 
-function computeRules(entities) {
+function computeRules(entities, entities_to_kill, entities_to_spawn) {
     if (entities.length >= 8) {
         let currentEntity = entities[8];
         let neighborLiveCount = getNeighborLiveCount(entities);
@@ -339,7 +355,7 @@ function computeRules(entities) {
         //Rule: live cell whose neighbor live cell count <2 -> die
         if (currentEntity.state == 'alive' && neighborLiveCount < 2) {
             //kill entity
-            KILL_RENDER.push(currentEntity);
+            entities_to_kill.push(currentEntity);
             //  killEntity(currentEntity.x, currentEntity.y);
         }
         if (currentEntity.state == 'alive' && (neighborLiveCount == 2 || neighborLiveCount == 3)) {
@@ -347,12 +363,12 @@ function computeRules(entities) {
         }
         if (currentEntity.state == 'alive' && neighborLiveCount > 3) {
             //kill entity
-            KILL_RENDER.push(currentEntity);
+            entities_to_kill.push(currentEntity);
             //  killEntity(currentEntity.x, currentEntity.y);
         }
         if (currentEntity.state == 'dead' && neighborLiveCount == 3) {
             //entity born
-            SPAWN_RENDER.push(currentEntity);
+            entities_to_spawn.push(currentEntity);
             // spawnEntity(currentEntity.x, currentEntity.y);
         }
     }
