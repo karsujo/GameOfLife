@@ -116,7 +116,7 @@ function loadConfig() {
 function nextGen() {
 
     if (GAME_START) {
-        var t0 = performance.now();
+        // var t0 = performance.now();
 
         var entities_to_kill = new Array();
         var entities_to_spawn = new Array();
@@ -124,23 +124,14 @@ function nextGen() {
         for (i = 0; i < GAME_WIDTH; i = i + GRID_UNIT) {
             for (j = 0; j < GAME_HEIGHT; j = j + GRID_UNIT) {
 
-                if ((i == 8 && j == 32) || (i == 16 && j == 32) || (i == 16 && j == 32 + 8)) {
-                    // alert("Hit");
-                    // TRACK_ENTITY = true;
-                    var stub = false;
-                }
-
                 computeRules(computeNeighborValues(i, j), entities_to_kill, entities_to_spawn);
             }
         }
 
         RenderEntities(entities_to_kill, entities_to_spawn);
         setGameGeneration();
-        var t1 = performance.now();
-        console.log("Perf" + ":" + (t1 - t0));
-
-        //   KILL_RENDER = new Array();
-        //  SPAWN_RENDER = new Array();
+        // var t1 = performance.now();
+        // console.log("Perf" + ":" + (t1 - t0));
     }
 }
 //-----------//
@@ -491,22 +482,6 @@ function spawnConfig(config) {
     }
 }
 
-function spawnRPentomino() {
-    spawnEntity(288, 200);
-    spawnEntity(288, 208);
-    spawnEntity(288, 216);
-    spawnEntity(296, 200);
-    spawnEntity(280, 208);
-}
-
-
-function spawnGlider() {
-    spawnEntity(248, 216);
-    spawnEntity(256, 216);
-    spawnEntity(264, 216);
-    spawnEntity(264, 208);
-    spawnEntity(256, 200);
-}
 
 //-----------//
 
