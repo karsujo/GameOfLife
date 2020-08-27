@@ -9,9 +9,13 @@ const GAME_HEIGHT = canvas.height;
 var GAME_START = true;
 var CANVAS_SCOPE = false;
 var IS_MOUSE_DOWN = false;
+var TRACK_ENTITY = false;
+var KILL_RENDER = new Array();
+var SPAWN_RENDER = new Array();
 //-----------//
 
 //--MOUSE EVENT LISTENERS---//
+
 canvas.addEventListener('mousedown', function(e) {
     spawnMousePathEntities(canvas, e)
 })
@@ -31,11 +35,12 @@ canvas.addEventListener('mouseup', function(e) {
 
 
 //--GAME INIT AND CONTROL---//
+
 initializeBoard();
 
 function startGame() {
     GAME_START = true;
-    setInterval(nextGen, 1000);
+    setInterval(nextGen, 10);
 };
 
 function stopGame() {
@@ -48,17 +53,30 @@ function clearGame() {
 }
 
 function nextGen() {
+
     if (GAME_START) {
+
+        var boardScanResult = null;
+
         for (i = 0; i < GAME_WIDTH; i = i + GRID_UNIT) {
             for (j = 0; j < GAME_HEIGHT; j = j + GRID_UNIT) {
+
+                if ((i == 8 && j == 32) || (i == 16 && j == 32) || (i == 16 && j == 32 + 8)) {
+                    // alert("Hit");
+                    // TRACK_ENTITY = true;
+                    var stub = false;
+                }
 
                 computeRules(computeNeighborValues(i, j));
             }
         }
+
+        RenderEntities();
+
+        KILL_RENDER = new Array();
+        SPAWN_RENDER = new Array();
     }
 }
-
-
 //-----------//
 
 //---MOUSE CONTROLS---//
@@ -84,8 +102,8 @@ function spawnMousePathEntities(canvas, event) {
     const y = (event.clientY - rect.top)
     let xp = closestMultiple(x, 8);
     let yp = closestMultiple(y, 8);
-    console.log(xp);
-    console.log(yp);
+    //  console.log(xp);
+    //  console.log(yp);
     spawnEntity(xp, yp);
 }
 
@@ -127,6 +145,17 @@ function trackEntity(x, y) {
     ctxt.fillRect(x, y, GRID_UNIT, GRID_UNIT);
 }
 
+
+function RenderEntities(entitiesToKill, entitiesToSpawn) {
+    KILL_RENDER.forEach((entity) => {
+        killEntity(entity.x, entity.y);
+
+    });
+
+    SPAWN_RENDER.forEach((entity) => {
+        spawnEntity(entity.x, entity.y);
+    })
+}
 //-----------//
 
 //---BOARD-CONTROLS---///
@@ -135,15 +164,6 @@ function initializeBoard() {
     context.fillStyle = 'gray';
     context.fillRect(0, 0, canvas.width, canvas.height);
     //   drawGrid(GAME_WIDTH, GAME_HEIGHT, "canvas");
-
-    //let seedEntity = new entity();
-    // seedEntity.x = Math.floor(Math.random() * (8 - 1) + 1)*boxUnit;
-    // seedEntity.y = Math.floor(Math.random() * (8 - 1) + 1*boxUnit);
-
-    // seedEntity.x = 64;
-    // seedEntity.y = 128;
-    // seedEntity.state = 'alive';
-    // spawnEntity(seedEntity, context);
 
     initializeEntities();
 }
@@ -155,9 +175,8 @@ function initializeEntities() {
 
     spawnEntity(16, 32);
 
-    spawnEntity(24, 32);
+    spawnEntity(16, 32 + 8);
 
-    spawnEntity(32, 32);
 
 }
 
@@ -168,24 +187,36 @@ function computeNeighborValues(x, y) {
     // |_||_||_|
     // |_||_||_|
     var xpos = x - GRID_UNIT;
-    var ypos = y + GRID_UNIT;
+    var ypos = y - GRID_UNIT;
     if (IsWithinGrid(xpos, ypos)) {
+        if (TRACK_ENTITY) {
+            trackEntity(xpos, ypos);
+        }
+
         neighborMatrix[0] = createEntity(xpos, ypos);
     }
     //  ________
     // |_||X||_|
     // |_||_||_|
     // |_||_||_|
-    (xpos = x), (ypos = y + GRID_UNIT);
+    (xpos = x), (ypos = y - GRID_UNIT);
     if (IsWithinGrid(xpos, ypos)) {
+        if (TRACK_ENTITY) {
+            trackEntity(xpos, ypos);
+        }
+
         neighborMatrix[1] = createEntity(xpos, ypos);
     }
     //  ________
     // |_||_||X|
     // |_||_||_|
     // |_||_||_|
-    (xpos = x + GRID_UNIT), (ypos = y + GRID_UNIT);
+    (xpos = x + GRID_UNIT), (ypos = y - GRID_UNIT);
     if (IsWithinGrid(xpos, ypos)) {
+        if (TRACK_ENTITY) {
+            trackEntity(xpos, ypos);
+        }
+
         neighborMatrix[2] = createEntity(xpos, ypos);
     }
     //  ________
@@ -194,30 +225,46 @@ function computeNeighborValues(x, y) {
     // |_||_||_|
     (xpos = x + GRID_UNIT), (ypos = y);
     if (IsWithinGrid(xpos, ypos)) {
+        if (TRACK_ENTITY) {
+            trackEntity(xpos, ypos);
+        }
+
         neighborMatrix[3] = createEntity(xpos, ypos);
     }
     //  ________
     // |_||_||_|
     // |_||_||_|
     // |_||_||X|
-    (xpos = x - GRID_UNIT), (ypos = y + GRID_UNIT);
+    (xpos = x + GRID_UNIT), (ypos = y + GRID_UNIT);
     if (IsWithinGrid(xpos, ypos)) {
+        if (TRACK_ENTITY) {
+            trackEntity(xpos, ypos);
+        }
+
         neighborMatrix[4] = createEntity(xpos, ypos);
     }
     //  ________
     // |_||_||_|
     // |_||_||_|
     // |_||X||_|
-    (xpos = x), (ypos = y - GRID_UNIT);
+    (xpos = x), (ypos = y + GRID_UNIT);
     if (IsWithinGrid(xpos, ypos)) {
+        if (TRACK_ENTITY) {
+            trackEntity(xpos, ypos);
+        }
+
         neighborMatrix[5] = createEntity(xpos, ypos);
     }
     //  ________
     // |_||_||_|
     // |_||_||_|
     // |X||_||_|
-    (xpos = x - GRID_UNIT), (ypos = y - GRID_UNIT);
+    (xpos = x - GRID_UNIT), (ypos = y + GRID_UNIT);
     if (IsWithinGrid(xpos, ypos)) {
+        if (TRACK_ENTITY) {
+            trackEntity(xpos, ypos);
+        }
+
         neighborMatrix[6] = createEntity(xpos, ypos);
     }
     //  ________
@@ -226,6 +273,10 @@ function computeNeighborValues(x, y) {
     // |_||_||_|
     (xpos = x - GRID_UNIT), (ypos = y);
     if (IsWithinGrid(xpos, ypos)) {
+        if (TRACK_ENTITY) {
+            trackEntity(xpos, ypos);
+        }
+
         neighborMatrix[7] = createEntity(xpos, ypos);
     }
     //current cell
@@ -235,6 +286,10 @@ function computeNeighborValues(x, y) {
     // |_||_||_|
     (xpos = x), (ypos = y);
     if (IsWithinGrid(xpos, ypos)) {
+        if (TRACK_ENTITY) {
+            trackEntity(xpos, ypos);
+        }
+
         neighborMatrix[8] = createEntity(xpos, ypos);
     }
     return neighborMatrix;
@@ -268,15 +323,10 @@ function IsEntityWhite(context, x, y) {
     if (entityColor == '#ffffff') return true;
     return false;
 }
-
-
-
 //-----------//
 
 
-
 //---GAME RULES---//
-
 
 function computeRules(entities) {
     if (entities.length >= 8) {
@@ -289,18 +339,21 @@ function computeRules(entities) {
         //Rule: live cell whose neighbor live cell count <2 -> die
         if (currentEntity.state == 'alive' && neighborLiveCount < 2) {
             //kill entity
-            killEntity(currentEntity.x, currentEntity.y);
+            KILL_RENDER.push(currentEntity);
+            //  killEntity(currentEntity.x, currentEntity.y);
         }
         if (currentEntity.state == 'alive' && (neighborLiveCount == 2 || neighborLiveCount == 3)) {
             //remain alive
         }
         if (currentEntity.state == 'alive' && neighborLiveCount > 3) {
             //kill entity
-            killEntity(currentEntity.x, currentEntity.y);
+            KILL_RENDER.push(currentEntity);
+            //  killEntity(currentEntity.x, currentEntity.y);
         }
         if (currentEntity.state == 'dead' && neighborLiveCount == 3) {
             //entity born
-            spawnEntity(currentEntity.x, currentEntity.y);
+            SPAWN_RENDER.push(currentEntity);
+            // spawnEntity(currentEntity.x, currentEntity.y);
         }
     }
 }
