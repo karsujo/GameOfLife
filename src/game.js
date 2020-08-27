@@ -1,4 +1,7 @@
-//Comments : TODO: Fix the mouseover, add stop button, and fix the rule engine, also make the grid lines visible. !!
+//Comments : TODO: Fix the mouseover, also make the grid lines visible. fast slow settings. !!
+//Add moreconfigurations
+//PERF: REFACTOR CODE FOR PERF!!
+
 
 //--GLOBALS---//
 const canvas = document.getElementById('canvas');
@@ -7,7 +10,7 @@ const GRID_UNIT = 8;
 const GAME_WIDTH = canvas.width;
 const GAME_HEIGHT = canvas.height;
 var GAME_START = true;
-var GAME_PERIOD = 10;
+var GAME_PERIOD = 100;
 var GENERATION = 0;
 var CANVAS_SCOPE = false;
 var IS_MOUSE_DOWN = false;
@@ -55,6 +58,13 @@ function clearGame() {
     clearGameGeneration();
 }
 
+function stepGame() {
+    let gameState = GAME_START;
+    GAME_START = true;
+    nextGen();
+    GAME_START = gameState;
+}
+
 function setGameGeneration() {
     GENERATION++;
     document.getElementById("gen").innerText = GENERATION;
@@ -65,9 +75,48 @@ function clearGameGeneration() {
     document.getElementById("gen").innerText = GENERATION;
 }
 
+function loadConfig() {
+    clearGame();
+    let selectVal = document.getElementById("config").value;
+    switch (selectVal) {
+        case "R-Pentomino":
+            spawnConfig(R_PENTOMINO_CONFIG);
+            break;
+
+        case "Glider":
+            spawnConfig(GLIDER_CONFIG);
+            break;
+
+        case "Ten-Cell":
+            spawnConfig(TEN_CELL_EXPLODER);
+            break;
+
+        case "Small-Exploder":
+            spawnConfig(SMALL_EXPLODER_CONFIG);
+            break;
+
+        case "Bloom":
+            spawnConfig(BLOOM_CONFIG);
+            break;
+
+        case "Exploder":
+            spawnConfig(EXPLODER_CONFIG);
+            break;
+
+        case "Gosper":
+            spawnConfig(GOSPER_GUN);
+            break;
+
+        default:
+            break;
+    }
+
+}
+
 function nextGen() {
 
     if (GAME_START) {
+        var t0 = performance.now();
 
         var entities_to_kill = new Array();
         var entities_to_spawn = new Array();
@@ -87,7 +136,8 @@ function nextGen() {
 
         RenderEntities(entities_to_kill, entities_to_spawn);
         setGameGeneration();
-
+        var t1 = performance.now();
+        console.log("Perf" + ":" + (t1 - t0));
 
         //   KILL_RENDER = new Array();
         //  SPAWN_RENDER = new Array();
@@ -118,8 +168,7 @@ function spawnMousePathEntities(canvas, event) {
     const y = (event.clientY - rect.top)
     let xp = closestMultiple(x, 8);
     let yp = closestMultiple(y, 8);
-    console.log(xp);
-    console.log(yp);
+    console.log(xp + "," + yp);
     spawnEntity(xp, yp);
 }
 
@@ -179,9 +228,11 @@ function initializeBoard() {
 
     context.fillStyle = 'gray';
     context.fillRect(0, 0, canvas.width, canvas.height);
+
+    //drawBoard(GAME_WIDTH, GAME_HEIGHT, 0, 8);
     //   drawGrid(GAME_WIDTH, GAME_HEIGHT, "canvas");
 
-    initializeEntities();
+    // initializeEntities();
 }
 
 
@@ -402,26 +453,60 @@ class Position {
 }
 
 
-function drawGrid(w, h, id) {
-    var canvas = document.getElementById(id);
-    var ctx = canvas.getContext('2d');
-    ctx.canvas.width = w;
-    ctx.canvas.height = h;
-    CanvasRenderingContext2D.fillStyle = 'white';
 
 
-    for (x = 0; x <= w; x += 20) {
-        for (y = 0; y <= h; y += 20) {
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, h);
-            ctx.stroke();
-            ctx.moveTo(0, y);
-            ctx.lineTo(w, y);
-            ctx.stroke();
-        }
+
+
+function drawBoard(bw, bh, p, u) {
+    for (var x = 0; x <= bw; x += u) {
+        context.moveTo(0.5 + x + p, p);
+        context.lineTo(0.5 + x + p, bh + p);
     }
 
-};
+    for (var x = 0; x <= bh; x += u) {
+        context.moveTo(p, 0.5 + x + p);
+        context.lineTo(bw + p, 0.5 + x + p);
+    }
+    context.strokeStyle = "white";
+    context.stroke();
+}
+
+
+//-----------//
+
+//---STATIC CONFIGURATIONS ---//
+const R_PENTOMINO_CONFIG = [288, 200, 288, 208, 288, 216, 296, 200, 280, 208];
+const TEN_CELL_EXPLODER = [232, 216, 240, 216, 248, 216, 256, 216, 264, 216, 272, 216, 280, 216, 288, 216, 296, 216, 304, 216];
+const SMALL_EXPLODER_CONFIG = [264, 232, 272, 232, 280, 232, 272, 224, 264, 240, 280, 240, 272, 248];
+const GLIDER_CONFIG = [248, 216, 256, 216, 264, 216, 264, 208, 256, 200];
+const BLOOM_CONFIG = [280, 176, 280, 184, 280, 192, 288, 176, 288, 192, 272, 184];
+const EXPLODER_CONFIG = [248, 200, 248, 208, 248, 216, 248, 224, 248, 232, 264, 200, 280, 200, 280, 208, 280, 216, 280, 224, 280, 232, 264, 232]
+const GOSPER_GUN = [136, 152, 136, 152, 144, 152, 136, 160, 144, 160, 216, 152, 208, 152, 216, 160, 200, 160, 200, 168, 208, 168, 264, 168, 272, 168, 264, 176, 264, 184, 280, 176, 312, 152, 320, 152, 312, 144, 320, 136, 328, 136, 328, 144, 408, 136, 416, 136, 408, 144, 416, 144, 416, 192, 416, 200, 416, 208, 424, 192, 432, 200, 328, 232, 336, 232, 344, 232, 328, 240, 336, 248];
+
+//Untested
+function spawnConfig(config) {
+    for (j = 0; j < config.length - 1; j = j + 2) {
+        let k = j + 1;
+        spawnEntity(config[j], config[k]);
+    }
+}
+
+function spawnRPentomino() {
+    spawnEntity(288, 200);
+    spawnEntity(288, 208);
+    spawnEntity(288, 216);
+    spawnEntity(296, 200);
+    spawnEntity(280, 208);
+}
+
+
+function spawnGlider() {
+    spawnEntity(248, 216);
+    spawnEntity(256, 216);
+    spawnEntity(264, 216);
+    spawnEntity(264, 208);
+    spawnEntity(256, 200);
+}
 
 //-----------//
 

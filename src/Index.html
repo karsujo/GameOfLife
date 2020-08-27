@@ -26,15 +26,33 @@
                 <button type="button" class="btn btn-success btn-sm" onclick="startGame()">Start</button>
                 <button type="button" class="btn btn-danger btn-sm" onclick="stopGame()">Stop</button>
                 <button type="button" class="btn btn-warning btn-sm" onclick="clearGame()">Clear</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="stepGame()">Step</button>
+                <h6 style="color: black;font-family: sans-serif;">Generation</h6>
+                <h6 id="gen" style="color: black;font-family: sans-serif;">0</h6>
 
             </div>
+
 
         </div>
         <div class="row">
+
             <div class="text-center">
-                <h4 style="color: black;font-family: sans-serif;">Generation</h1>
-                    <h4 id="gen" style="color: black;font-family: sans-serif;">0</h1>
+                <label for="config">Choose configuration:</label>
+                <select name="config" id="config" onselect="loadConfig()">
+                  <option value="Glider">Glider</option>
+                  <option value="R-Pentomino">R-Pentomino</option>
+                  <option value="Ten-Cell">Ten-Cell Exploder</option>
+                  <option value="Small-Exploder">Small Exploder</option>
+                  <option value="Bloom">Bloomer</option>
+                  <option value="Exploder">Exploder</option>
+                  <option value="Gosper">Gosper Gun</option>
+                </select>
+                <button onclick="loadConfig()">Load</button>
             </div>
+
+
+
+
 
         </div>
         <div class="row">
@@ -44,9 +62,9 @@
                    </canvas>
             </div>
         </div>
+    </div>
 
-
-        <script src="game.js"></script>
+    <script src="game.js"></script>
 </body>
 
 </html>
