@@ -1,20 +1,16 @@
 //Comments : TODO: Fix the mouseover, Checkbox for GRID. fast slow settings<range slider>. !!
 //Add moreconfigurations
-//PERF: REFACTOR CODE FOR PERF!!
-class Entity {
-    constructor(x, y, state) {
-        this.x = x;
-        this.y = y;
-        this.state = state;
-    }
-}
 
-//--GLOBALS---//
+//--CONSTANTS---//
 const canvas = document.getElementById('canvas');
 const context = canvas.getContext('2d');
 const GRID_UNIT = 8;
 const GAME_WIDTH = canvas.width;
 const GAME_HEIGHT = canvas.height;
+const FRAME_HEIGHT = GAME_HEIGHT / GRID_UNIT;
+const FRAME_WIDTH = GAME_WIDTH / GRID_UNIT;
+
+//--GLOBALS---//
 var GAME_START = true;
 var GAME_PERIOD = 200;
 var GENERATION = 0;
@@ -23,10 +19,16 @@ var IS_MOUSE_DOWN = false;
 var TRACK_ENTITY = false;
 var ENTITY_FRAME = null;
 var MAP_NEIGHBOR = null;
-const FRAME_HEIGHT = GAME_HEIGHT / GRID_UNIT;
-const FRAME_WIDTH = GAME_WIDTH / GRID_UNIT;
 var GAME_CONTROL = null;
 //-----------//
+
+class Entity {
+    constructor(x, y, state) {
+        this.x = x;
+        this.y = y;
+        this.state = state;
+    }
+}
 
 //--MOUSE EVENT LISTENERS---//
 
@@ -50,14 +52,14 @@ canvas.addEventListener('mouseup', function (e) {
 
 //--GAME INIT AND CONTROL---//
 
-initializeBoard();
+initBoard();
 
 function startGame() {
     GAME_START = true;
     if (GAME_CONTROL != null) {
         clearInterval(GAME_CONTROL);
     }
-    GAME_CONTROL = setInterval(nextGen, GAME_PERIOD);
+    GAME_CONTROL = setInterval(nextGeneration, GAME_PERIOD);
 };
 
 function stopGame() {
@@ -65,7 +67,7 @@ function stopGame() {
 }
 
 function clearGame() {
-    initializeBoard();
+    initBoard();
     stopGame();
     clearGameGeneration();
 }
@@ -73,7 +75,7 @@ function clearGame() {
 function stepGame() {
     let gameState = GAME_START;
     GAME_START = true;
-    nextGen();
+    nextGeneration();
     GAME_START = gameState;
 }
 
@@ -131,45 +133,38 @@ function loadConfig(selectVal) {
 
 }
 
-function nextGen() {
+function nextGeneration() {
 
     if (GAME_START) {
         //var t0 = performance.now();
+        var killEntities = new Array();
+        var spawnEntities = new Array();
 
-        var entities_to_kill = new Array();
-        var entities_to_spawn = new Array();
         for (i = 0; i < FRAME_HEIGHT; i++) {
             for (j = 0; j < FRAME_WIDTH; j++) {
-                if ((i == 31 && j == 27) || (i == 32 && j == 24) || (i == 33 && j == 27)) {
-                    // TRACK_ENTITY = true;
-                }
-                let neighbors = computeNeighborContext(i, j);
-
-                //   console.log(neighbors, i, j);
-
-                applyConwayRules(neighbors[0], neighbors[1], neighbors[2], entities_to_kill, entities_to_spawn);
-
+                let neighborContext = computeNeighborContext(i, j);
+                applyConwayRules(neighborContext[0], neighborContext[1], neighborContext[2], killEntities, spawnEntities);
             }
         }
 
-        updateEntityState(entities_to_kill, entities_to_spawn);
-        renderEntities(entities_to_kill, entities_to_spawn);
-
+        updateFrameState(killEntities, spawnEntities);
+        renderEntities(killEntities, spawnEntities);
         setGameGeneration();
-
         drawGrid(GAME_WIDTH, GAME_HEIGHT, 0, 8);
+
         // var t1 = performance.now();
-        //console.log("Perf" + ":" + (t1 - t0));
+        //console.log('perf :' + (t1 - t0));
+
     }
 }
 
-function updateEntityState(entities_to_kill, entities_to_spawn) {
-    entities_to_kill.forEach((entity) => {
+function updateFrameState(killEntities, spawnEntities) {
+    killEntities.forEach((entity) => {
         ENTITY_FRAME[entity.x / GRID_UNIT][entity.y / GRID_UNIT].state = 'dead';
 
     });
 
-    entities_to_spawn.forEach((entity) => {
+    spawnEntities.forEach((entity) => {
         ENTITY_FRAME[entity.x / GRID_UNIT][entity.y / GRID_UNIT].state = 'alive';
     })
 
@@ -198,11 +193,14 @@ function spawnMousePathEntities(canvas, event) {
     let xpos = closestMultiple((event.clientX - rect.left), 8);
     let ypos = closestMultiple((event.clientY - rect.top), 8);
     //update frame
-    let transformX = xpos / GRID_UNIT;
-    let transformY = ypos / GRID_UNIT
-    ENTITY_FRAME[transformX][transformY].state = 'alive';
+    let t_X = xpos / GRID_UNIT;
+    let t_Y = ypos / GRID_UNIT
+    if ((t_X >= 0 && t_Y > 0 && t_X < (FRAME_WIDTH) && t_Y < (FRAME_HEIGHT))) {
+        ENTITY_FRAME[t_X][t_Y].state = 'alive';
 
-    spawnEntity(xpos, ypos);
+
+        spawnEntity(xpos, ypos);
+    }
 }
 
 //-----------//
@@ -219,21 +217,18 @@ function createEntity(x, y) {
 }
 
 function killEntity(x, y) {
-    let ctxt = canvas.getContext('2d');
-    ctxt.fillStyle = 'gray';
-    ctxt.fillRect(x, y, GRID_UNIT, GRID_UNIT);
+    context.fillStyle = 'gray';
+    context.fillRect(x, y, GRID_UNIT, GRID_UNIT);
 }
 
 function spawnEntity(x, y) {
-    let ctxt = canvas.getContext('2d');
-    ctxt.fillStyle = 'white';
-    ctxt.fillRect(x, y, GRID_UNIT, GRID_UNIT);
+    context.fillStyle = 'white';
+    context.fillRect(x, y, GRID_UNIT, GRID_UNIT);
 }
 
 function trackEntity(x, y) {
-    let ctxt = canvas.getContext('2d');
-    ctxt.fillStyle = 'blue';
-    ctxt.fillRect(x, y, GRID_UNIT, GRID_UNIT);
+    context.fillStyle = 'blue';
+    context.fillRect(x, y, GRID_UNIT, GRID_UNIT);
 }
 
 function renderEntities(entitiesToKill, entitiesToSpawn) {
@@ -250,16 +245,16 @@ function renderEntities(entitiesToKill, entitiesToSpawn) {
 //-----------//
 
 //---BOARD-CONTROLS---///
-function initializeBoard() {
+function initBoard() {
 
     context.fillStyle = 'gray';
-    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
     initEntityFrame();
-    generateNeighborMapEngine();
+    if (MAP_NEIGHBOR == null) {
+        navigateNeighborMap();
+    }
     drawGrid(GAME_WIDTH, GAME_HEIGHT, 0, 8);
-    //   drawGrid(GAME_WIDTH, GAME_HEIGHT, "canvas");
 
-    // initializeEntities();
 }
 
 
@@ -288,7 +283,7 @@ function applyConfigToFrame(config) {
     }
 }
 
-function generateNeighborMapEngine() {
+function navigateNeighborMap() {
     MAP_NEIGHBOR = new Map();
     MAP_NEIGHBOR.set(0, function (x, y) { return [x - 1, y - 1] });
     MAP_NEIGHBOR.set(1, function (x, y) { return [x, y - 1] });
@@ -300,7 +295,6 @@ function generateNeighborMapEngine() {
     MAP_NEIGHBOR.set(7, function (x, y) { return [x - 1, y] });
 
 }
-
 
 function computeNeighborContext(x, y) {
     var neighbor_count = 0;
@@ -325,10 +319,6 @@ function computeNeighborContext(x, y) {
     return [ENTITY_FRAME[x][y], neighbor_count, entities_encountered];
 }
 
-function IsWithinGrid(x, y) {
-    return (x >= 0 && y > 0 && x < GAME_WIDTH && y < GAME_HEIGHT);
-}
-
 function getNeighborLiveCount(entities) {
     let count = 0;
     entities.forEach((entity) => {
@@ -341,18 +331,6 @@ function getNeighborLiveCount(entities) {
 
 }
 
-
-function getEntityColor(context, x, y) {
-    var p = context.getImageData(x, y, GRID_UNIT, GRID_UNIT).data;
-    var hex = '#' + ('000000' + rgbToHex(p[0], p[1], p[2])).slice(-6);
-    return hex;
-}
-
-function IsEntityWhite(context, x, y) {
-    let entityColor = getEntityColor(context, x, y);
-    if (entityColor == '#ffffff') return true;
-    return false;
-}
 //-----------//
 
 
@@ -385,7 +363,6 @@ function applyConwayRules(currentEntity, neighborLiveCount, entities_encountered
 //-----------//
 
 //--UTILITY FUNCTIONS---//
-
 
 function closestMultiple(n, x) {
     if (x > n) {
