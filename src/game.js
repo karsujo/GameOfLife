@@ -1,6 +1,13 @@
-//Comments : TODO: Fix the mouseover, also make the grid lines visible. fast slow settings. !!
+//Comments : TODO: Fix the mouseover, Checkbox for GRID. fast slow settings<range slider>. !!
 //Add moreconfigurations
 //PERF: REFACTOR CODE FOR PERF!!
+class Entity {
+    constructor(x, y, state) {
+        this.x = x;
+        this.y = y;
+        this.state = state;
+    }
+}
 
 
 //--GLOBALS---//
@@ -10,29 +17,31 @@ const GRID_UNIT = 8;
 const GAME_WIDTH = canvas.width;
 const GAME_HEIGHT = canvas.height;
 var GAME_START = true;
-var GAME_PERIOD = 100;
+var GAME_PERIOD = 200;
 var GENERATION = 0;
 var CANVAS_SCOPE = false;
 var IS_MOUSE_DOWN = false;
 var TRACK_ENTITY = false;
+var ENTITY_FRAME = null;
+var MAP_NEIGHBOR = null;
 //var KILL_RENDER = new Array();
 //var SPAWN_RENDER = new Array();
 //-----------//
 
 //--MOUSE EVENT LISTENERS---//
 
-canvas.addEventListener('mousedown', function(e) {
+canvas.addEventListener('mousedown', function (e) {
     spawnMousePathEntities(canvas, e)
 })
-canvas.addEventListener('mousemove', function(e) {
+canvas.addEventListener('mousemove', function (e) {
     getCursorPositionHover(canvas, e)
 })
 
-canvas.addEventListener('mouseover', function(e) {
+canvas.addEventListener('mouseover', function (e) {
     setCanvasScope();
 })
 
-canvas.addEventListener('mouseup', function(e) {
+canvas.addEventListener('mouseup', function (e) {
     updateMouseDown();
 })
 
@@ -71,39 +80,47 @@ function setGameGeneration() {
 }
 
 function clearGameGeneration() {
-    GENERATION = 0;
+    GENERATION = 0; ENTITY_FRAME.forEach((entity) => { if (entity.state == 'alive') { console.log(entity.x + "," + entity.y) } })
     document.getElementById("gen").innerText = GENERATION;
 }
 
-function loadConfig() {
+function loadConfig(selectVal) {
     clearGame();
-    let selectVal = document.getElementById("config").value;
+
+    //let selectVal = document.getElementById("config").value;
     switch (selectVal) {
         case "R-Pentomino":
+            applyConfigToFrame(R_PENTOMINO_CONFIG)
             spawnConfig(R_PENTOMINO_CONFIG);
             break;
 
         case "Glider":
+            applyConfigToFrame(GLIDER_CONFIG);
             spawnConfig(GLIDER_CONFIG);
             break;
 
         case "Ten-Cell":
+            applyConfigToFrame(TEN_CELL_EXPLODER);
             spawnConfig(TEN_CELL_EXPLODER);
             break;
 
         case "Small-Exploder":
+            applyConfigToFrame(SMALL_EXPLODER_CONFIG);
             spawnConfig(SMALL_EXPLODER_CONFIG);
             break;
 
         case "Bloom":
+            applyConfigToFrame(BLOOM_CONFIG);
             spawnConfig(BLOOM_CONFIG);
             break;
 
         case "Exploder":
+            applyConfigToFrame(EXPLODER_CONFIG);
             spawnConfig(EXPLODER_CONFIG);
             break;
 
         case "Gosper":
+            applyConfigToFrame(GOSPER_GUN);
             spawnConfig(GOSPER_GUN);
             break;
 
@@ -116,23 +133,44 @@ function loadConfig() {
 function nextGen() {
 
     if (GAME_START) {
-        // var t0 = performance.now();
+        var t0 = performance.now();
 
         var entities_to_kill = new Array();
         var entities_to_spawn = new Array();
+        //tore the div vals
+        for (i = 0; i < GAME_HEIGHT / GRID_UNIT; i++) {
+            for (j = 0; j < GAME_WIDTH / GRID_UNIT; j++) {
+                if ((i == 31 && j == 27) || (i == 32 && j == 24) || (i == 33 && j == 27)) {
+                    // TRACK_ENTITY = true;
+                }
+                let neighbors = getNeighborLiveCount_FRAME(i, j);
 
-        for (i = 0; i < GAME_WIDTH; i = i + GRID_UNIT) {
-            for (j = 0; j < GAME_HEIGHT; j = j + GRID_UNIT) {
+                //   console.log(neighbors, i, j);
 
-                computeRules(computeNeighborValues(i, j), entities_to_kill, entities_to_spawn);
+                computeRules(neighbors[0], neighbors[1], neighbors[2], entities_to_kill, entities_to_spawn);
+
             }
         }
 
+        updateEntityState(entities_to_kill, entities_to_spawn);
         RenderEntities(entities_to_kill, entities_to_spawn);
         setGameGeneration();
-        // var t1 = performance.now();
-        // console.log("Perf" + ":" + (t1 - t0));
+        drawBoard(GAME_WIDTH, GAME_HEIGHT, 0, 8);
+        var t1 = performance.now();
+        console.log("Perf" + ":" + (t1 - t0));
     }
+}
+
+function updateEntityState(entities_to_kill, entities_to_spawn) {
+    entities_to_kill.forEach((entity) => {
+        ENTITY_FRAME[entity.x / GRID_UNIT][entity.y / GRID_UNIT].state = 'dead';
+
+    });
+
+    entities_to_spawn.forEach((entity) => {
+        ENTITY_FRAME[entity.x / GRID_UNIT][entity.y / GRID_UNIT].state = 'alive';
+    })
+
 }
 //-----------//
 
@@ -159,7 +197,13 @@ function spawnMousePathEntities(canvas, event) {
     const y = (event.clientY - rect.top)
     let xp = closestMultiple(x, 8);
     let yp = closestMultiple(y, 8);
-    console.log(xp + "," + yp);
+    let transformX = xp / GRID_UNIT;
+    let transformY = yp / GRID_UNIT
+    let entity = ENTITY_FRAME[transformX][transformY];
+    entity.state = 'alive';
+    ENTITY_FRAME[transformX][transformY] = entity;
+    // console.log(xp + "," + yp);
+    // console.log((xp / 8) + "," + (yp / 8));
     spawnEntity(xp, yp);
 }
 
@@ -167,13 +211,6 @@ function spawnMousePathEntities(canvas, event) {
 
 //----ENTITY----//
 
-class Entity {
-    constructor(x, y, state) {
-        this.x = x;
-        this.y = y;
-        this.state = state;
-    }
-}
 
 function createEntity(x, y) {
     let currentEntity = new Entity();
@@ -202,6 +239,7 @@ function trackEntity(x, y) {
 }
 
 
+
 function RenderEntities(entitiesToKill, entitiesToSpawn) {
     entitiesToKill.forEach((entity) => {
         killEntity(entity.x, entity.y);
@@ -209,6 +247,7 @@ function RenderEntities(entitiesToKill, entitiesToSpawn) {
     });
 
     entitiesToSpawn.forEach((entity) => {
+        console
         spawnEntity(entity.x, entity.y);
     })
 }
@@ -219,138 +258,106 @@ function initializeBoard() {
 
     context.fillStyle = 'gray';
     context.fillRect(0, 0, canvas.width, canvas.height);
-
-    //drawBoard(GAME_WIDTH, GAME_HEIGHT, 0, 8);
+    initEntityFrame();
+    generateNeighborMapEngine();
+    drawBoard(GAME_WIDTH, GAME_HEIGHT, 0, 8);
     //   drawGrid(GAME_WIDTH, GAME_HEIGHT, "canvas");
 
     // initializeEntities();
 }
 
 
-function initializeEntities() {
 
-    spawnEntity(16, 24);
+function initEntityFrame() {
+    ENTITY_FRAME = new Array(GAME_HEIGHT / GRID_UNIT);
+    for (var i = 0; i < ENTITY_FRAME.length; i++) {
+        ENTITY_FRAME[i] = new Array(GAME_WIDTH / GRID_UNIT);
+    }
 
-    spawnEntity(16, 32);
-
-    spawnEntity(16, 32 + 8);
-
+    for (var i = 0; i < GAME_HEIGHT / GRID_UNIT; i++) {
+        for (var j = 0; j < GAME_WIDTH / GRID_UNIT; j++) {
+            let e = new Entity(i * GRID_UNIT, j * GRID_UNIT, 'dead');
+            ENTITY_FRAME[i][j] = e;
+        }
+    }
 
 }
 
-function computeNeighborValues(x, y) {
-    var neighborMatrix = new Array();
-    //  ________
-    // |X||_||_|
-    // |_||_||_|
-    // |_||_||_|
-    var xpos = x - GRID_UNIT;
-    var ypos = y - GRID_UNIT;
-    if (IsWithinGrid(xpos, ypos)) {
-        if (TRACK_ENTITY) {
-            trackEntity(xpos, ypos);
+function applyConfigToFrame(config) {
+    for (var j = 0; j < config.length - 1; j = j + 2) {
+        let k = j + 1;
+        let transformX = config[j] / GRID_UNIT;
+        let transformY = config[k] / GRID_UNIT
+        let entity = ENTITY_FRAME[transformX][transformY];
+        entity.state = 'alive';
+        ENTITY_FRAME[transformX][transformY] = entity;
+    }
+}
+
+function generateNeighborMapEngine() {
+    MAP_NEIGHBOR = new Map();
+    MAP_NEIGHBOR.set(0, function (x, y) { return [x - 1, y - 1] });
+    MAP_NEIGHBOR.set(1, function (x, y) { return [x, y - 1] });
+    MAP_NEIGHBOR.set(2, function (x, y) { return [x + 1, y - 1] });
+    MAP_NEIGHBOR.set(3, function (x, y) { return [x + 1, y] });
+    MAP_NEIGHBOR.set(4, function (x, y) { return [x + 1, y + 1] });
+    MAP_NEIGHBOR.set(5, function (x, y) { return [x, y + 1] });
+    MAP_NEIGHBOR.set(6, function (x, y) { return [x - 1, y + 1] });
+    MAP_NEIGHBOR.set(7, function (x, y) { return [x - 1, y] });
+
+}
+
+
+
+function getNeighborIndex(index, x, y) {
+    switch (index) {
+        case 0:
+            return (x - 1, y - 1);
+        case 1:
+            return (x, y - 1);
+        case 2:
+            return (x + 1, y - 1);
+        case 3:
+            return (x + 1, y);
+        case 4:
+            return (x + 1, y + 1);
+        case 5:
+            return (x, y + 1);
+        case 6:
+            return (x - 1, y + 1);
+        case 7:
+            return (x - 1, y);
+        case 8:
+            return (x, y);
+
+
+        default:
+            break;
+    }
+}
+
+
+function getNeighborLiveCount_FRAME(x, y) {
+    var neighbor_count = 0;
+    var entities_encountered = 0;
+    for (var i = 0; i < 8; i++) {
+        let c_map = MAP_NEIGHBOR.get(i)(x, y);
+        let t_X = c_map[0]; let t_Y = c_map[1];
+
+        if ((t_X >= 0 && t_Y > 0 && t_X < (GAME_WIDTH / GRID_UNIT) && t_Y < (GAME_HEIGHT / GRID_UNIT))) {
+            entities_encountered++;
+            let entity = ENTITY_FRAME[t_X][t_Y];
+
+            if (TRACK_ENTITY) {
+                console.log(entity);
+                trackEntity(entity.x, entity.y);
+            }
+            if (entity.state == 'alive') { neighbor_count++; }
         }
 
-        neighborMatrix[0] = createEntity(xpos, ypos);
     }
-    //  ________
-    // |_||X||_|
-    // |_||_||_|
-    // |_||_||_|
-    (xpos = x), (ypos = y - GRID_UNIT);
-    if (IsWithinGrid(xpos, ypos)) {
-        if (TRACK_ENTITY) {
-            trackEntity(xpos, ypos);
-        }
-
-        neighborMatrix[1] = createEntity(xpos, ypos);
-    }
-    //  ________
-    // |_||_||X|
-    // |_||_||_|
-    // |_||_||_|
-    (xpos = x + GRID_UNIT), (ypos = y - GRID_UNIT);
-    if (IsWithinGrid(xpos, ypos)) {
-        if (TRACK_ENTITY) {
-            trackEntity(xpos, ypos);
-        }
-
-        neighborMatrix[2] = createEntity(xpos, ypos);
-    }
-    //  ________
-    // |_||_||_|
-    // |_||_||X|
-    // |_||_||_|
-    (xpos = x + GRID_UNIT), (ypos = y);
-    if (IsWithinGrid(xpos, ypos)) {
-        if (TRACK_ENTITY) {
-            trackEntity(xpos, ypos);
-        }
-
-        neighborMatrix[3] = createEntity(xpos, ypos);
-    }
-    //  ________
-    // |_||_||_|
-    // |_||_||_|
-    // |_||_||X|
-    (xpos = x + GRID_UNIT), (ypos = y + GRID_UNIT);
-    if (IsWithinGrid(xpos, ypos)) {
-        if (TRACK_ENTITY) {
-            trackEntity(xpos, ypos);
-        }
-
-        neighborMatrix[4] = createEntity(xpos, ypos);
-    }
-    //  ________
-    // |_||_||_|
-    // |_||_||_|
-    // |_||X||_|
-    (xpos = x), (ypos = y + GRID_UNIT);
-    if (IsWithinGrid(xpos, ypos)) {
-        if (TRACK_ENTITY) {
-            trackEntity(xpos, ypos);
-        }
-
-        neighborMatrix[5] = createEntity(xpos, ypos);
-    }
-    //  ________
-    // |_||_||_|
-    // |_||_||_|
-    // |X||_||_|
-    (xpos = x - GRID_UNIT), (ypos = y + GRID_UNIT);
-    if (IsWithinGrid(xpos, ypos)) {
-        if (TRACK_ENTITY) {
-            trackEntity(xpos, ypos);
-        }
-
-        neighborMatrix[6] = createEntity(xpos, ypos);
-    }
-    //  ________
-    // |_||_||_|
-    // |X||_||_|
-    // |_||_||_|
-    (xpos = x - GRID_UNIT), (ypos = y);
-    if (IsWithinGrid(xpos, ypos)) {
-        if (TRACK_ENTITY) {
-            trackEntity(xpos, ypos);
-        }
-
-        neighborMatrix[7] = createEntity(xpos, ypos);
-    }
-    //current cell
-    //  ________
-    // |_||_||_|
-    // |_||X||_|
-    // |_||_||_|
-    (xpos = x), (ypos = y);
-    if (IsWithinGrid(xpos, ypos)) {
-        if (TRACK_ENTITY) {
-            trackEntity(xpos, ypos);
-        }
-
-        neighborMatrix[8] = createEntity(xpos, ypos);
-    }
-    return neighborMatrix;
+    TRACK_ENTITY = false;
+    return [ENTITY_FRAME[x][y], neighbor_count, entities_encountered];
 }
 
 function IsWithinGrid(x, y) {
@@ -386,13 +393,9 @@ function IsEntityWhite(context, x, y) {
 
 //---GAME RULES---//
 
-function computeRules(entities, entities_to_kill, entities_to_spawn) {
-    if (entities.length >= 8) {
-        let currentEntity = entities[8];
-        let neighborLiveCount = getNeighborLiveCount(entities);
-        if (currentEntity.state == 'alive') {
-            neighborLiveCount--; //Ignore current cell from neighnor count.
-        }
+function computeRules(currentEntity, neighborLiveCount, entities_encountered, entities_to_kill, entities_to_spawn) {
+
+    if (entities_encountered >= 8) {
 
         //Rule: live cell whose neighbor live cell count <2 -> die
         if (currentEntity.state == 'alive' && neighborLiveCount < 2) {
@@ -419,11 +422,6 @@ function computeRules(entities, entities_to_kill, entities_to_spawn) {
 
 //--UTILITY FUNCTIONS---//
 
-function rgbToHex(r, g, b) {
-    if (r > 255 || g > 255 || b > 255) throw 'Invalid color component';
-    return ((r << 16) | (g << 8) | b).toString(16);
-}
-
 
 function closestMultiple(n, x) {
     if (x > n) {
@@ -433,17 +431,6 @@ function closestMultiple(n, x) {
     n = n - (n % x);
     return n;
 }
-
-
-class Position {
-
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-    }
-}
-
-
 
 
 
@@ -458,8 +445,9 @@ function drawBoard(bw, bh, p, u) {
         context.moveTo(p, 0.5 + x + p);
         context.lineTo(bw + p, 0.5 + x + p);
     }
-    context.strokeStyle = "white";
+    context.strokeStyle = "#cccccc";
     context.stroke();
+
 }
 
 
@@ -486,3 +474,5 @@ function spawnConfig(config) {
 //-----------//
 
 ////////////////////////////////////////////////////////////////////////
+
+//31, 24  32,
