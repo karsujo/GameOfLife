@@ -8,3 +8,5 @@ A pure JavaScript implementation of Conway's Game of Life. Currently the code ta
 - Bloomer
 - R-Pentomino
 - Gosper Gun 
+
+![Alt Text](/Resources/GOL.gif)
